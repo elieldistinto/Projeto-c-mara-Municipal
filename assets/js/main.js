@@ -23,9 +23,35 @@ const OSRM_BASE_URL = "https://router.project-osrm.org";
 
 // Função principal de arranque da aplicação
 function init() {
+  initTheme();
   initMap();
   renderPoints();
   initUI();
+  applyHashFocus();
+  window.addEventListener("hashchange", applyHashFocus);
+}
+
+// Função para alternar tema claro/escuro
+function initTheme() {
+  const themeToggle = document.getElementById("theme-toggle");
+  if (!themeToggle) return;
+  
+  // Verificar tema salvo no localStorage
+  const savedTheme = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  
+  if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+  
+  themeToggle.addEventListener("click", () => {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
+  });
 }
 
 // Cria e configura o mapa centrado na zona do Casino Fundanense
@@ -35,8 +61,6 @@ function initMap() {
   }).setView([MAP_CENTER.lat, MAP_CENTER.lng], MAP_CENTER.zoom);
 
   // Camadas base:
-  // - Satélite (real) para veres o terreno/fotos
-  // - Mapa (OSM) como alternativa
   mapLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors",
@@ -46,12 +70,10 @@ function initMap() {
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution:
-        "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+      attribution: "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
     }
   );
 
-  // Labels por cima do satélite (opcional)
   labelsLayer = L.tileLayer(
     "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
     {
@@ -61,7 +83,6 @@ function initMap() {
     }
   );
 
-  // Por defeito: satélite + labels
   satelliteLayer.addTo(map);
   labelsLayer.addTo(map);
 
@@ -92,7 +113,6 @@ function renderPoints() {
   markersById = {};
 
   FUNDAO_POINTS.forEach((point) => {
-    // Marcador no mapa
     const marker = L.marker([point.lat, point.lng]).addTo(markersLayer);
     markersById[point.id] = marker;
 
@@ -103,51 +123,20 @@ function renderPoints() {
       attachPopupEvents(e.popup, point);
     });
 
-    // Item na lista lateral
     const itemEl = createPoiListItem(point);
     listEl.appendChild(itemEl);
 
-    // Clique na lista também centraliza o mapa
     itemEl.addEventListener("click", () => {
       focusOnPoint(point);
     });
   });
 
-  // Ajusta a vista do mapa para englobar todos os pontos
   fitMapToPoints();
 }
 
-// Configura a interface (dropdown de percursos, modal, slider de comparação)
+// Configura a interface (apenas rota real, sem percursos)
 function initUI() {
-  const routeSelect = document.getElementById("route-select");
-  const clearRouteBtn = document.getElementById("clear-route");
-
-  FUNDAO_ROUTES.forEach((route) => {
-    const opt = document.createElement("option");
-    opt.value = route.id;
-    opt.textContent = route.name;
-    routeSelect.appendChild(opt);
-  });
-
-  routeSelect.addEventListener("change", () => {
-    const routeId = routeSelect.value;
-    if (!routeId) {
-      clearActiveRoute();
-      return;
-    }
-    const route = FUNDAO_ROUTES.find((r) => r.id === routeId);
-    if (route) {
-      showRoute(route);
-    }
-  });
-
-  clearRouteBtn.addEventListener("click", () => {
-    routeSelect.value = "";
-    clearActiveRoute();
-  });
-
   initRealRoutePlanner();
-
   initModal();
   initCompareSlider();
   initAnimeToggle();
@@ -173,6 +162,17 @@ function createMapToggleButton() {
       const btn = L.DomUtil.create("button", "leaflet-anime-toggle");
       btn.type = "button";
       btn.title = "Ativar/desativar filtro anime";
+      btn.style.cssText = `
+        background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      `;
       L.DomEvent.disableClickPropagation(btn);
       return btn;
     },
@@ -224,16 +224,12 @@ function createPopupHtml(point) {
           <button class="icon-button js-open-real-route" data-id="${point.id}" title="Traçar rota real (tempo / distância)">RT</button>
         </div>
       </div>
-      ${
-        tagsText
-          ? `<div style="margin-top:6px;font-size:11px;color:#9ca3af;">${tagsText}</div>`
-          : ""
-      }
+      ${tagsText ? `<div style="margin-top:6px;font-size:11px;color:#9ca3af;">${tagsText}</div>` : ""}
     </div>
   `;
 }
 
-// Liga eventos no conteúdo do popup (botão de comparação)
+// Liga eventos no conteúdo do popup
 function attachPopupEvents(popup, point) {
   const container = popup.getElement();
   if (!container) return;
@@ -261,7 +257,7 @@ function attachPopupEvents(popup, point) {
   }
 }
 
-// Cria um item de lista na barra lateral para um ponto de interesse
+// Cria um item de lista na barra lateral
 function createPoiListItem(point) {
   const li = document.createElement("li");
   li.className = "poi-item";
@@ -312,7 +308,6 @@ function focusOnPoint(point) {
   const marker = markersById[point.id];
   if (!marker) return;
 
-  // Animação suave até ao ponto selecionado
   map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), MAP_CENTER.zoom), {
     duration: 0.9,
   });
@@ -331,7 +326,15 @@ function fitMapToPoints() {
   map.fitBounds(bounds, { padding: [40, 40] });
 }
 
-// Destaca visualmente o ponto selecionado na lista
+function applyHashFocus() {
+  const hashId = window.location.hash.replace("#", "").trim();
+  if (!hashId) return;
+  const point = FUNDAO_POINTS.find((p) => p.id === hashId);
+  if (point) {
+    focusOnPoint(point);
+  }
+}
+
 function highlightPoi(poiId) {
   selectedPoiId = poiId;
   const items = document.querySelectorAll(".poi-item");
@@ -344,29 +347,6 @@ function highlightPoi(poiId) {
   });
 }
 
-// Cria e mostra uma rota selecionada, desenhando uma polyline no mapa
-function showRoute(route) {
-  clearActiveRoute();
-
-  activeRouteLayer = L.polyline(route.coordinates, {
-    color: route.color || "#ff6ad5",
-    weight: 4,
-    opacity: 0.9,
-    lineJoin: "round",
-    lineCap: "round",
-  }).addTo(map);
-
-  map.fitBounds(activeRouteLayer.getBounds(), { padding: [40, 40] });
-}
-
-// Remove a rota ativa, se existir
-function clearActiveRoute() {
-  if (activeRouteLayer) {
-    map.removeLayer(activeRouteLayer);
-    activeRouteLayer = null;
-  }
-}
-
 function initRealRoutePlanner() {
   const destSelect = document.getElementById("real-destination");
   const modeSelect = document.getElementById("real-mode");
@@ -375,12 +355,10 @@ function initRealRoutePlanner() {
   const statsEl = document.getElementById("real-route-stats");
   const errorEl = document.getElementById("real-route-error");
 
-  // Caso a página não tenha a UI (ex.: se abrir outro HTML)
   if (!destSelect || !modeSelect || !routeBtn || !clearBtn || !statsEl || !errorEl) {
     return;
   }
 
-  // Preenche destinos automaticamente com os pontos do mapa
   FUNDAO_POINTS.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.id;
@@ -431,7 +409,6 @@ function initRealRoutePlanner() {
     setError("");
   });
 
-  // Seleciona o primeiro destino por defeito para facilitar o teste
   if (!destSelect.value && FUNDAO_POINTS[0]) {
     destSelect.value = FUNDAO_POINTS[0].id;
   }
@@ -452,16 +429,13 @@ function requestUserGeolocation() {
         });
       },
       (err) => {
-        const msg =
-          err && err.message
-            ? err.message
-            : "Não foi possível obter a tua localização. Ativa o GPS e tenta novamente.";
+        const msg = err && err.message ? err.message : "Não foi possível obter a tua localização. Ativa o GPS e tenta novamente.";
         reject(new Error(msg));
       },
       {
         enableHighAccuracy: true,
         timeout: 9000,
-        maximumAge: 30_000,
+        maximumAge: 30000,
       }
     );
   });
@@ -499,7 +473,6 @@ async function fetchOsrmRouteWithFallback(start, end, mode, signal) {
   try {
     return await fetchOsrmRouteProfile(start, end, preferredProfile, signal);
   } catch (err) {
-    // Se “walking” falhar no servidor, fazemos fallback para “driving”
     if (preferredProfile === "walking") {
       return await fetchOsrmRouteProfile(start, end, "driving", signal);
     }
@@ -598,7 +571,6 @@ function animateMarkerAlongRoute(latlngs, durationSeconds) {
 }
 
 function renderRealRoute(latlngs) {
-  // Camada base (sombra) para dar profundidade
   realRouteBaseLayer = L.polyline(latlngs, {
     color: "#020617",
     weight: 10,
@@ -607,7 +579,6 @@ function renderRealRoute(latlngs) {
     lineCap: "round",
   }).addTo(map);
 
-  // Camada principal com aspeto “animado” via dash
   realRouteOverlayLayer = L.polyline(latlngs, {
     color: "#7cf8ff",
     weight: 4,
@@ -623,7 +594,6 @@ function renderRealRoute(latlngs) {
 async function computeAndRenderRealRoute(destPoint, mode, ui) {
   const { setLoading, statsEl, setError } = ui || {};
 
-  // Limpa rota anterior para evitar acumulação de camadas
   clearRealRoute();
 
   const routeBtn = document.getElementById("real-route-btn");
@@ -650,12 +620,10 @@ async function computeAndRenderRealRoute(destPoint, mode, ui) {
       statsEl.textContent = `Tempo estimado: ${formatDuration(route.durationSeconds)} · Distância: ${formatDistance(route.distanceMeters)}`;
     }
   } catch (err) {
-    const msg =
-      err?.name === "AbortError" ? "" : err?.message || errorFallback;
+    const msg = err?.name === "AbortError" ? "" : err?.message || errorFallback;
     setError?.(msg);
   } finally {
     setLoading?.(false);
-    // Garantir que o botão volta a estado normal mesmo se falhar
     if (routeBtn) routeBtn.textContent = "Traçar rota real";
   }
 }
@@ -670,7 +638,6 @@ async function openRealRoute(point) {
   const statsEl = document.getElementById("real-route-stats");
   const errorEl = document.getElementById("real-route-error");
 
-  // Reaproveita o mesmo “engine” do painel
   await computeAndRenderRealRoute(point, mode, {
     setLoading: (isLoading) => {
       const routeBtn = document.getElementById("real-route-btn");
@@ -687,7 +654,7 @@ async function openRealRoute(point) {
   });
 }
 
-// Inicialização da janela modal de comparação Antes / Depois
+// Inicialização da janela modal de comparação
 function initModal() {
   const modal = document.getElementById("compare-modal");
   const closeBtn = document.getElementById("modal-close");
@@ -708,42 +675,6 @@ function initModal() {
   });
 }
 
-// Abre o modal e atualiza as informações e imagens de acordo com o ponto selecionado
-function openCompareModal(point) {
-  const modal = document.getElementById("compare-modal");
-
-  const titleEl = document.getElementById("modal-title");
-  const descEl = document.getElementById("modal-description");
-  const categoryEl = document.getElementById("modal-category");
-  const tagsEl = document.getElementById("modal-tags");
-  const imgBeforeEl = document.getElementById("img-before");
-  const imgAfterEl = document.getElementById("img-after");
-
-  titleEl.textContent = point.name;
-  descEl.textContent = point.description;
-  categoryEl.textContent = point.category;
-  tagsEl.textContent = point.tags && point.tags.length ? point.tags.join(", ") : "Sem tags definidas";
-
-  const overrides = loadImageOverrides();
-  const override = overrides[point.id] || {};
-
-  imgBeforeEl.src =
-    resolveOverridePath(override.before, "before") ||
-    point.beforeImage ||
-    createInlinePlaceholder("Antes");
-  imgAfterEl.src =
-    resolveOverridePath(override.after, "after") ||
-    point.afterImage ||
-    createInlinePlaceholder("Depois");
-
-  // Reinicia o slider no meio
-  const slider = document.getElementById("compare-slider");
-  slider.value = 50;
-  updateCompareOverlay(slider.value);
-
-  modal.classList.remove("hidden");
-}
-
 function loadImageOverrides() {
   try {
     const raw = localStorage.getItem(IMAGE_OVERRIDES_KEY);
@@ -756,12 +687,21 @@ function loadImageOverrides() {
   }
 }
 
+function normalizeImagePath(rawPath) {
+  if (!rawPath) return "";
+  let clean = String(rawPath).trim().replaceAll("\\", "/");
+  if (!clean) return "";
+  clean = clean.replace(/\/+/g, "/");
+  return encodeURI(clean);
+}
+
 function resolveOverridePath(value, kind) {
   const v = (value || "").trim().replaceAll("\\", "/");
   if (!v) return "";
   if (v.startsWith("images/")) return v;
   if (kind === "before") return `images/before/${v}`;
   if (kind === "after") return `images/after/${v}`;
+  if (kind === "anime") return `images/anime/${v}`;
   return v;
 }
 
@@ -776,21 +716,71 @@ function createInlinePlaceholder(label) {
     </linearGradient>
   </defs>
   <rect width="1280" height="720" fill="url(#g)"/>
-  <circle cx="980" cy="180" r="220" fill="#ff6ad5" opacity="0.18"/>
-  <circle cx="260" cy="580" r="260" fill="#38bdf8" opacity="0.16"/>
   <text x="50%" y="48%" text-anchor="middle" font-size="56" fill="#f9fafb" font-family="Segoe UI, system-ui">Imagem ${safe}</text>
-  <text x="50%" y="58%" text-anchor="middle" font-size="28" fill="#9ca3af" font-family="Segoe UI, system-ui">Coloca o ficheiro em images/${safe === "Antes" ? "before" : "after"}/</text>
+  <text x="50%" y="58%" text-anchor="middle" font-size="28" fill="#9ca3af" font-family="Segoe UI, system-ui">Coloca o ficheiro em images/</text>
 </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-// Fecha o modal de comparação
+function applyImageFallback(img, label) {
+  if (!img) return;
+  img.addEventListener(
+    "error",
+    () => {
+      img.onerror = null;
+      img.src = createInlinePlaceholder(label);
+    },
+    { once: true }
+  );
+}
+
+// Abre o modal e atualiza as informações e imagens
+function openCompareModal(point) {
+  const modal = document.getElementById("compare-modal");
+
+  const titleEl = document.getElementById("modal-title");
+  const descEl = document.getElementById("modal-description");
+  const categoryEl = document.getElementById("modal-category");
+  const tagsEl = document.getElementById("modal-tags");
+  const imgBeforeEl = document.getElementById("img-before");
+  const imgAfterEl = document.getElementById("img-after");
+
+  titleEl.textContent = point.name;
+  descEl.textContent = point.description || point.shortDescription;
+  categoryEl.textContent = point.category;
+  tagsEl.textContent = point.tags && point.tags.length ? point.tags.join(", ") : "Sem tags definidas";
+
+  const overrides = loadImageOverrides();
+  const override = overrides[point.id] || {};
+
+  const beforePath = normalizeImagePath(resolveOverridePath(override.before, "before") || point.beforeImage || "");
+  const afterPath = normalizeImagePath(resolveOverridePath(override.after, "after") || point.afterImage || "");
+  const animePath = normalizeImagePath(resolveOverridePath(override.anime, "anime") || point.animeImage || "");
+
+  imgBeforeEl.src = beforePath || createInlinePlaceholder("Antes");
+  imgAfterEl.src = afterPath || createInlinePlaceholder("Depois");
+  
+  const imgAnimeEl = document.getElementById("img-anime");
+  if (imgAnimeEl) {
+    imgAnimeEl.src = animePath || createInlinePlaceholder("Anime");
+    applyImageFallback(imgAnimeEl, "Anime");
+  }
+
+  applyImageFallback(imgBeforeEl, "Antes");
+  applyImageFallback(imgAfterEl, "Depois");
+
+  const slider = document.getElementById("compare-slider");
+  slider.value = 50;
+  updateCompareOverlay(slider.value);
+
+  modal.classList.remove("hidden");
+}
+
 function closeModal() {
   const modal = document.getElementById("compare-modal");
   modal.classList.add("hidden");
 }
 
-// Configuração do slider de comparação Antes / Depois
 function initCompareSlider() {
   const slider = document.getElementById("compare-slider");
   slider.addEventListener("input", () => {
@@ -798,12 +788,9 @@ function initCompareSlider() {
   });
 }
 
-// Atualiza a largura do overlay da imagem "Depois" consoante o valor do slider
 function updateCompareOverlay(value) {
   const overlay = document.getElementById("after-overlay");
   overlay.style.width = `${value}%`;
 }
 
-// Arranque assim que o DOM estiver disponível
 document.addEventListener("DOMContentLoaded", init);
-

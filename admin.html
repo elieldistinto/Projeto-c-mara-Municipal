@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestor de Imagens (Antes/Depois) - Fundão</title>
-    <link rel="stylesheet" href="css/style.css?v=3" />
+    <title>Gestor de Imagens - Fundão</title>
+    <link rel="stylesheet" href="assets/css/style.css?v=3" />
   </head>
   <body>
     <div class="app-shell">
@@ -26,9 +26,10 @@
         <section class="panel-section" style="width: 100%">
           <h2>Como usar (mais fácil)</h2>
           <p class="panel-hint" style="margin-bottom: 10px">
-            1) Copia as tuas fotos para as pastas <code>images/before</code> e
-            <code>images/after</code>. 2) Aqui, escreve só o <b>nome do ficheiro</b>
-            (ex.: <code>2547157168.jpg</code>). 3) Clica <b>Guardar</b>.
+            1) Copia as tuas fotos para as pastas <code>images/before</code>,
+            <code>images/after</code> e <code>images/anime</code>.
+            2) Aqui, escreve só o <b>nome do ficheiro</b> (ex.: <code>2547157168.jpg</code>).
+            3) Clica <b>Guardar</b>.
           </p>
           <div class="grid-tools">
             <button id="save" class="btn-primary">Guardar</button>
@@ -38,11 +39,11 @@
         </section>
 
         <section class="panel-section" style="width: 100%;">
-          <h2>Visualização profissional Antes / Depois</h2>
+          <h2>Visualização profissional Antes / Depois / Anime</h2>
           <p class="panel-hint">
-            Esta vista organiza as tuas imagens por ponto, mostrando lado a lado o
-            antes e o depois com base nas pastas <code>images/before</code> e
-            <code>images/after</code>.
+            Esta vista organiza as tuas imagens por ponto, mostrando antes, depois
+            e a versão anime com base nas pastas <code>images/before</code>,
+            <code>images/after</code> e <code>images/anime</code>.
           </p>
           <div id="image-gallery" class="gallery-grid"></div>
         </section>
@@ -55,7 +56,7 @@
     </div>
 
     <script src="data/locations.js?v=3"></script>
-    <script src="js/image-mapper.js?v=3"></script>
+    <script src="assets/js/image-manager.js?v=3"></script>
   </body>
 </html>
 
