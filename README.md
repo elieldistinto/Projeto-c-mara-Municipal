@@ -1,25 +1,18 @@
-﻿# Mapa Interativo da Cidade do Fundão
+﻿# 🗺️ Mapa Interativo da Cidade do Fundão
 
-Este projeto é uma demonstração profissional de um mapa interativo para a cidade do Fundão.
-Ao clicar nos pontos do mapa, o utilizador visualiza imagens de antes, depois e uma versão em estilo anime.
+## 📋 Sobre o Projeto
 
-## Estrutura do projeto
-- `index.html` — página principal do mapa interativo
-- `admin.html` — gestor de imagens para associar ficheiros de antes/depois/anime aos pontos
-- `assets/css/style.css` — estilos globais e interface do projeto
-- `assets/js/main.js` — lógica principal do mapa e da interação do utilizador
-- `assets/js/image-manager.js` — gestor de nomes de ficheiros e pré-visualização de imagens
-- `data/locations.js` — definições dos pontos de interesse, descrições, coordenadas e caminhos de imagem
-- `images/before`, `images/after`, `images/anime` — pastas de imagens para cada tipo de vista
+Este projeto é uma demonstração profissional de um mapa interativo para a cidade do Fundão. Desenvolvido para um workshop, permite aos utilizadores explorar pontos de interesse, comparar imagens históricas e atuais, e visualizar versões em estilo anime dos locais.
 
-## Uso
-1. Copia as fotos para as pastas `images/before`, `images/after` e `images/anime`.
-2. Abre `admin.html` para guardar o nome dos ficheiros usados por cada ponto.
-3. Abre `index.html` para navegar pelo mapa e ver as imagens do local.
+## ✨ Funcionalidades
 
-## Melhorias aplicadas
-- estrutura de ficheiros organizada em `assets/`
-- interface mais profissional, limpa e responsiva
-- suporte a comparador antes/depois
-- suporte a versão anime para cada ponto
-- gestor de imagens com pré-visualização, fallback e validação de caminhos
+- **Mapa Interativo** com Leaflet.js e camadas de satélite/ruas
+- **Pontos de Interesse** com descrições detalhadas e categorias
+- **Comparador Antes/Depois** com slider interativo
+- **Versão Anime** com filtro visual personalizado
+- **Rota em Tempo Real** com animação do percurso
+- **Modo Claro/Escuro** com persistência local
+- **Gestor de Imagens** para associar ficheiros aos pontos
+- **Filtro de Pesquisa** para localizar pontos rapidamente
+
+## 📁 Estrutura do Projeto

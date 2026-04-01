@@ -1,8 +1,12 @@
-// Página "Gestor de Imagens":
-// Guarda (em localStorage) os nomes de ficheiros de antes/depois/anime para cada ponto.
+// ============================================
+// Gestor de Imagens - Versão Melhorada
+// ============================================
 
 const STORAGE_KEY = "fundao:imageOverrides:v1";
 
+// ============================================
+// UTILITÁRIOS
+// ============================================
 function loadOverrides() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -36,70 +40,49 @@ function normalizeImagePath(rawPath) {
 function createInlinePlaceholder(label) {
   const safe = String(label || "").replace(/[<>&"]/g, "");
   const folder = safe === "Antes" ? "before" : safe === "Depois" ? "after" : "anime";
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1120"/>
-      <stop offset="1" stop-color="#111827"/>
-    </linearGradient>
-  </defs>
-  <rect width="640" height="360" fill="url(#g)"/>
-  <text x="50%" y="45%" text-anchor="middle" font-size="28" fill="#cbd5e1" font-family="Segoe UI, system-ui">📷 Imagem ${safe}</text>
-  <text x="50%" y="60%" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="Segoe UI, system-ui">Coloca o ficheiro em images/${folder}/</text>
-</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+    <rect width="400" height="300" fill="#1f2937"/>
+    <text x="200" y="150" text-anchor="middle" font-size="20" fill="#9ca3af">${safe}</text>
+    <text x="200" y="190" text-anchor="middle" font-size="12" fill="#6b7280">images/${folder}/</text>
+  </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function applyImageFallback(img, label) {
   if (!img) return;
-  img.addEventListener(
-    "error",
-    () => {
-      img.onerror = null;
-      img.src = createInlinePlaceholder(label);
-    },
-    { once: true }
-  );
+  img.addEventListener("error", () => {
+    img.onerror = null;
+    img.src = createInlinePlaceholder(label);
+  }, { once: true });
 }
 
 function toBeforePath(value) {
   const v = normalizarNome(value);
-  let pathBase = "";
   if (!v) return "";
-  if (v.startsWith("images/")) pathBase = v;
-  else pathBase = `images/before/${v}`;
-  return normalizeImagePath(pathBase);
+  if (v.startsWith("images/")) return normalizeImagePath(v);
+  return normalizeImagePath(`images/before/${v}`);
 }
 
 function toAfterPath(value) {
   const v = normalizarNome(value);
-  let pathBase = "";
   if (!v) return "";
-  if (v.startsWith("images/")) pathBase = v;
-  else pathBase = `images/after/${v}`;
-  return normalizeImagePath(pathBase);
+  if (v.startsWith("images/")) return normalizeImagePath(v);
+  return normalizeImagePath(`images/after/${v}`);
 }
 
 function toAnimePath(value) {
   const v = normalizarNome(value);
-  let pathBase = "";
   if (!v) return "";
-  if (v.startsWith("images/")) pathBase = v;
-  else pathBase = `images/anime/${v}`;
-  return normalizeImagePath(pathBase);
+  if (v.startsWith("images/")) return normalizeImagePath(v);
+  return normalizeImagePath(`images/anime/${v}`);
 }
 
 function getImagePath(point, overrides, kind) {
   const override = overrides?.[point.id]?.[kind] || "";
-  const fromOverride =
-    kind === "before"
-      ? toBeforePath(override)
-      : kind === "after"
-      ? toAfterPath(override)
-      : kind === "anime"
-      ? toAnimePath(override)
-      : "";
+  const fromOverride = kind === "before" ? toBeforePath(override)
+    : kind === "after" ? toAfterPath(override)
+    : kind === "anime" ? toAnimePath(override) : "";
+  
   if (fromOverride) return fromOverride;
 
   if (kind === "before") return point.beforeImage || "";
@@ -107,6 +90,9 @@ function getImagePath(point, overrides, kind) {
   return point.animeImage || "";
 }
 
+// ============================================
+// GALERIA VISUAL
+// ============================================
 function renderGallery(overrides) {
   const gallery = document.getElementById("image-gallery");
   if (!gallery) return;
@@ -123,10 +109,10 @@ function renderGallery(overrides) {
     card.innerHTML = `
       <div class="gallery-header">
         <div>
-          <h3>${point.name}</h3>
-          <p class="gallery-meta">${point.category}</p>
+          <h3>${escapeHtml(point.name)}</h3>
+          <p class="gallery-meta">${escapeHtml(point.category)}</p>
         </div>
-        <span class="chip">${point.tags?.[0] || "Imagem"}</span>
+        <span class="chip">${point.tags?.[0] || "Ponto"}</span>
       </div>
       <div class="gallery-photos">
         <figure>
@@ -143,20 +129,15 @@ function renderGallery(overrides) {
         </figure>
       </div>
       <div class="gallery-footer">
-        <button class="btn-ghost" type="button" data-id="${point.id}" data-action="focus">📍 Ver no mapa</button>
+        <button class="btn-ghost" type="button" data-id="${point.id}" data-action="focus">
+          <i class="fas fa-map-marker-alt"></i> Ver no mapa
+        </button>
       </div>
     `;
 
     const galleryImages = card.querySelectorAll("img");
-    galleryImages.forEach((img) => {
-      const label = img.alt?.includes("Antes")
-        ? "Antes"
-        : img.alt?.includes("Depois")
-        ? "Depois"
-        : "Anime";
-      if (!img.src) {
-        img.src = createInlinePlaceholder(label);
-      }
+    galleryImages.forEach((img, idx) => {
+      const label = idx === 0 ? "Antes" : idx === 1 ? "Depois" : "Anime";
       applyImageFallback(img, label);
     });
 
@@ -164,6 +145,9 @@ function renderGallery(overrides) {
   });
 }
 
+// ============================================
+// LINHAS DE EDIÇÃO
+// ============================================
 function createRow(point, overrides) {
   const wrapper = document.createElement("div");
   wrapper.className = "row";
@@ -268,38 +252,71 @@ function collectOverridesFromUI() {
   return overrides;
 }
 
+// ============================================
+// ESCAPE HTML
+// ============================================
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
 function init() {
   const rowsEl = document.getElementById("rows");
   const statusEl = document.getElementById("status");
   const saveBtn = document.getElementById("save");
   const resetBtn = document.getElementById("reset");
 
+  if (!rowsEl) return;
+
   const overrides = loadOverrides();
 
   renderGallery(overrides);
+  
   FUNDAO_POINTS.forEach((point) => {
     rowsEl.appendChild(createRow(point, overrides));
   });
 
-  saveBtn.addEventListener("click", () => {
-    const newOverrides = collectOverridesFromUI();
-    saveOverrides(newOverrides);
-    renderGallery(newOverrides);
-    statusEl.textContent = "✅ Guardado com sucesso! Agora abre o mapa e clica nos pontos para ver as imagens.";
-    setTimeout(() => {
-      statusEl.textContent = "";
-    }, 3000);
-  });
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      const newOverrides = collectOverridesFromUI();
+      saveOverrides(newOverrides);
+      renderGallery(newOverrides);
+      if (statusEl) {
+        statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Guardado com sucesso!';
+        setTimeout(() => {
+          statusEl.innerHTML = "";
+        }, 3000);
+      }
+    });
+  }
 
-  resetBtn.addEventListener("click", () => {
-    localStorage.removeItem(STORAGE_KEY);
-    renderGallery({});
-    statusEl.textContent = "🗑️ Limpo. Recarrega a página para voltar ao estado inicial.";
-    setTimeout(() => {
-      statusEl.textContent = "";
-    }, 3000);
-  });
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      renderGallery({});
+      if (statusEl) {
+        statusEl.innerHTML = '<i class="fas fa-trash-alt"></i> Limpo. Recarregue para voltar ao estado inicial.';
+        setTimeout(() => {
+          statusEl.innerHTML = "";
+        }, 3000);
+      }
+      // Recarregar os inputs com valores vazios
+      const inputs = document.querySelectorAll(".row-input");
+      inputs.forEach(input => {
+        input.value = "";
+      });
+    });
+  }
 
+  // Navegação para o mapa
   document.getElementById("image-gallery")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action='focus']");
     if (!button) return;

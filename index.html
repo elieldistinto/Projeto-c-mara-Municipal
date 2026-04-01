@@ -3,24 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Mapa Interativo da Cidade do Fundão</title>
+  <meta name="description" content="Mapa Interativo da Cidade do Fundão - Explore pontos de interesse, compare antes/depois e descubra a versão anime da cidade." />
+  <title>Mapa Interativo | Cidade do Fundão</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
   <!-- Estilos principais -->
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
   <div class="app-shell">
+    <!-- Header Principal -->
     <header class="app-header">
       <div class="header-content">
         <div class="brand">
-          <span class="brand-tag">Fundão</span>
-          <h1 class="brand-title">Mapa Interativo da Cidade do Fundão</h1>
+          <div class="brand-icon">
+            <i class="fas fa-map-marked-alt"></i>
+          </div>
+          <div>
+            <span class="brand-tag">Cidade do Fundão</span>
+            <h1 class="brand-title">Mapa Interativo</h1>
+          </div>
         </div>
         <div class="header-actions">
           <button id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">
@@ -28,146 +33,180 @@
             <i class="fas fa-sun"></i>
           </button>
           <a class="btn-link" href="admin.html">
-            <i class="fas fa-images"></i> Gerir imagens
+            <i class="fas fa-images"></i> Gestor de Imagens
           </a>
         </div>
       </div>
       <p class="brand-subtitle">
-        Navega pelos pontos de interesse urbanos e compara antes, depois e a versão anime de cada local.
+        <i class="fas fa-compass"></i> Navega pelos pontos de interesse, compara antes e depois, e descobre a versão anime de cada local.
       </p>
     </header>
 
+    <!-- Conteúdo Principal -->
     <main class="app-main">
       <div class="map-and-panel">
-        <div id="map"></div>
+        <div id="map" class="map-container"></div>
 
         <aside class="side-panel">
+          <!-- Pontos de Interesse -->
           <section class="panel-section">
             <h2><i class="fas fa-map-pin"></i> Pontos de Interesse</h2>
             <p class="panel-hint">
-              Clica nos marcadores no mapa ou escolhe um ponto aqui em baixo.
+              Clique nos marcadores no mapa ou selecione um ponto abaixo.
             </p>
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="poi-search" placeholder="Filtrar pontos..." class="search-input">
+            </div>
             <ul id="poi-list" class="poi-list"></ul>
           </section>
 
-          <!-- SECÇÃO DE PERCURSOS REMOVIDA -->
-
+          <!-- Rota Real -->
           <section class="panel-section">
-            <h2><i class="fas fa-location-dot"></i> Rota Real (Tempo)</h2>
+            <h2><i class="fas fa-route"></i> Rota em Tempo Real</h2>
             <p class="panel-hint">
-              Calcula uma rota "real" (com tempo estimado) a partir da tua
-              localização atual até ao ponto selecionado.
+              Calcule uma rota da sua localização até ao ponto selecionado.
             </p>
 
-            <label class="form-label">Destino</label>
-            <select id="real-destination" class="route-select">
-              <option value="">— Selecionar destino —</option>
-            </select>
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-location-dot"></i> Destino
+              </label>
+              <select id="real-destination" class="route-select">
+                <option value="">— Selecionar destino —</option>
+              </select>
+            </div>
 
-            <label class="form-label">Modo</label>
-            <select id="real-mode" class="route-select">
-              <option value="driving"><i class="fas fa-car"></i> Carro (driving)</option>
-              <option value="walking"><i class="fas fa-person-walking"></i> A pé (walking)</option>
-            </select>
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-person-walking"></i> Modo de Transporte
+              </label>
+              <select id="real-mode" class="route-select">
+                <option value="driving"><i class="fas fa-car"></i> Carro</option>
+                <option value="walking"><i class="fas fa-person-walking"></i> A pé</option>
+              </select>
+            </div>
 
-            <button id="real-route-btn" class="btn-primary" type="button">
-              <i class="fas fa-map"></i> Traçar rota real
-            </button>
-            <button id="real-route-clear" class="btn-ghost" type="button" style="margin-top: 8px">
-              <i class="fas fa-eraser"></i> Limpar rota real
-            </button>
+            <div class="button-group">
+              <button id="real-route-btn" class="btn-primary" type="button">
+                <i class="fas fa-map"></i> Calcular Rota
+              </button>
+              <button id="real-route-clear" class="btn-ghost" type="button">
+                <i class="fas fa-eraser"></i> Limpar
+              </button>
+            </div>
 
-            <div id="real-route-stats" class="panel-hint" style="margin-top: 10px"></div>
-            <div id="real-route-error" class="panel-hint" style="margin-top: 8px; color: var(--danger)"></div>
+            <div id="real-route-stats" class="route-stats"></div>
+            <div id="real-route-error" class="route-error"></div>
           </section>
 
+          <!-- Modo Anime -->
           <section class="panel-section">
             <h2><i class="fas fa-palette"></i> Modo Anime</h2>
             <p class="panel-hint">
-              Este modo está sempre ativo a nível visual, mas podes usar esta
-              área para associar imagens em estilo anime mais tarde.
+              Ative o filtro visual para uma experiência estilizada.
             </p>
+            <button id="anime-toggle-panel" class="btn-anime">
+              <i class="fas fa-star"></i> Ativar Modo Anime
+            </button>
             <p class="panel-note">
-              <i class="fas fa-folder-open"></i> Adiciona as tuas imagens anime na pasta
-              <code>images/anime</code> e associa-as aos pontos no
-              ficheiro <code>data/locations.js</code>.
+              <i class="fas fa-folder-open"></i> Adicione imagens na pasta 
+              <code>images/anime/</code> e configure em <code>data/locations.js</code>.
             </p>
           </section>
         </aside>
       </div>
     </main>
 
+    <!-- Footer -->
     <footer class="app-footer">
-      <span><i class="fas fa-map-marked-alt"></i> Projeto demonstrativo · Cidade do Fundão · Zona do Casino Fundanense</span>
+      <div class="footer-content">
+        <span><i class="fas fa-map-marked-alt"></i> Mapa Interativo da Cidade do Fundão</span>
+        <span><i class="fas fa-code"></i> Projeto Demonstrativo</span>
+      </div>
     </footer>
   </div>
 
-  <!-- Modal Antes / Depois -->
+  <!-- NOVO MODAL - TRÊS IMAGENS LADO A LADO -->
   <div id="compare-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
-    <div class="modal-content">
+    <div class="modal-content modal-lg">
       <button id="modal-close" class="modal-close" aria-label="Fechar">
         <i class="fas fa-times"></i>
       </button>
       <div class="modal-body">
         <div class="modal-info">
-          <h2 id="modal-title">Antes &amp; Depois</h2>
-          <p id="modal-description">
-            Aqui irá aparecer uma breve descrição do ponto selecionado.
-          </p>
-
+          <h2 id="modal-title">Antes · Depois · Anime</h2>
+          <p id="modal-description"></p>
           <div class="modal-meta">
             <span id="modal-category" class="badge">Categoria</span>
             <span id="modal-tags" class="badge badge-soft">Tags</span>
           </div>
-
-          <p class="modal-note">
-            <i class="fas fa-info-circle"></i> Substitui as imagens de exemplo nesta vista pelas tuas fotografias
-            reais nas pastas <code>images/before</code>, <code>images/after</code>
-            e <code>images/anime</code>.
-          </p>
         </div>
 
-        <div class="compare-wrapper">
-          <div class="compare-labels">
-            <span><i class="fas fa-history"></i> Antes</span>
-            <span><i class="fas fa-calendar-check"></i> Depois</span>
-          </div>
-          <div class="compare-frame">
-            <img
-              id="img-before"
-              class="compare-image compare-image-before"
-              src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-              alt="Imagem antes"
-            />
-            <div id="after-overlay" class="compare-overlay">
-              <img
-                id="img-after"
-                class="compare-image compare-image-after"
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="Imagem depois"
-              />
+        <!-- GALERIA TRIPLA - IMAGENS LADO A LADO -->
+        <div class="triple-gallery">
+          <div class="gallery-card-full">
+            <div class="gallery-card-header">
+              <i class="fas fa-history"></i>
+              <span>ANTES</span>
+              <i class="fas fa-calendar-alt"></i>
             </div>
-            <input
-              id="compare-slider"
-              type="range"
-              min="0"
-              max="100"
-              value="50"
-              class="compare-slider"
-              aria-label="Controlar comparação antes/depois"
-            />
-          </div>
-          <div class="anime-panel">
-            <div class="anime-panel-title">
-              <i class="fas fa-palette"></i> Versão Anime
+            <div class="gallery-image-container">
+              <img id="img-before" class="gallery-image" alt="Imagem Antes" />
+              <div class="image-overlay">
+                <span>Registo Histórico</span>
+              </div>
             </div>
-            <img
-              id="img-anime"
-              class="anime-panel-image"
-              src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-              alt="Versão anime"
-            />
+            <div class="gallery-card-footer">
+              <span class="image-badge">Original</span>
+            </div>
+          </div>
+
+          <div class="gallery-card-full">
+            <div class="gallery-card-header">
+              <i class="fas fa-calendar-check"></i>
+              <span>DEPOIS</span>
+              <i class="fas fa-camera"></i>
+            </div>
+            <div class="gallery-image-container">
+              <img id="img-after" class="gallery-image" alt="Imagem Depois" />
+              <div class="image-overlay">
+                <span>Estado Atual</span>
+              </div>
+            </div>
+            <div class="gallery-card-footer">
+              <span class="image-badge">Atualidade</span>
+            </div>
+          </div>
+
+          <div class="gallery-card-full anime-card">
+            <div class="gallery-card-header">
+              <i class="fas fa-palette"></i>
+              <span>ANIME</span>
+              <i class="fas fa-star"></i>
+            </div>
+            <div class="gallery-image-container">
+              <img id="img-anime" class="gallery-image" alt="Versão Anime" />
+              <div class="image-overlay">
+                <span>Versão Estilizada</span>
+              </div>
+            </div>
+            <div class="gallery-card-footer">
+              <span class="image-badge anime-badge">Arte Digital</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de informações adicionais -->
+        <div class="gallery-info-bar">
+          <div class="info-item">
+            <i class="fas fa-info-circle"></i>
+            <span>Clique nas imagens para ampliar</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-sync-alt"></i>
+            <span>As imagens são atualizadas automaticamente</span>
           </div>
         </div>
       </div>
@@ -176,11 +215,9 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Dados de pontos e percursos -->
+  <!-- Dados -->
   <script src="data/locations.js"></script>
-
-  <!-- Lógica principal -->
+  <!-- Script Principal -->
   <script src="assets/js/main.js"></script>
 </body>
 </html>

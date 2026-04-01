@@ -1,12 +1,11 @@
-// Dados de pontos de interesse e percursos para o mapa do Fundão.
-// Coordenadas aproximadas da zona central do Fundão (perto da Praça do Município).
+// Dados de pontos de interesse - APENAS PONTOS COM IMAGENS COMPLETAS
 const MAP_CENTER = {
   lat: 40.1369,
   lng: -7.4995,
   zoom: 16,
 };
 
-// Lista de pontos de interesse - IMAGENS CORRIGIDAS (Antes <-> Depois trocadas)
+// Lista de pontos de interesse - Apenas pontos que possuem todas as imagens (Before, After, Anime)
 const FUNDAO_POINTS = [
   {
     id: "camara-municipal",
@@ -21,8 +20,8 @@ const FUNDAO_POINTS = [
       "Referência visual na frente urbana da praça.",
       "Arquitetura que combina elementos tradicionais e modernos."
     ],
-    beforeImage: "images/after/camaramunicipalafter.jpg",
-    afterImage: "images/before/camaramunicipaldofundaobefore.png",
+    beforeImage: "images/before/camaramunicipalbefore.png",
+    afterImage: "images/after/camaramunicipalafter.jpg",
     animeImage: "images/anime/camaramunicipalanime.png",
     tags: ["administração", "governação", "património"],
   },
@@ -39,28 +38,10 @@ const FUNDAO_POINTS = [
       "Integra a paisagem urbana da zona central do Fundão.",
       "Arquitetura emblemática da cidade."
     ],
-    beforeImage: "images/after/casinofundanenseafter.jpg",
-    afterImage: "images/before/edificiosjuntoaocasinobefore.png",
+    beforeImage: "images/before/casinofundanensebefore.png",
+    afterImage: "images/after/casinofundanenseafter.jpg",
     animeImage: "images/anime/casinofundanenseanime.png",
     tags: ["história", "cultura", "património"],
-  },
-  {
-    id: "jardim-publico-fontanario",
-    name: "Jardim Público / Fontanário",
-    category: "Espaço Público",
-    lat: 40.1414,
-    lng: -7.5009,
-    shortDescription: "Zona verde com fontanário, ideal para passeios e encontros informais.",
-    description: "Este espaço ajardinado com fontanário é um ponto de encontro tradicional da cidade, onde moradores e visitantes desfrutam de momentos de lazer e convívio.",
-    curiosities: [
-      "Frequentemente utilizado como ponto de passagem no centro.",
-      "O fontanário é um elemento histórico da cidade.",
-      "Espaço muito apreciado pelas famílias."
-    ],
-    beforeImage: "",
-    afterImage: "images/before/jardimpublicofontanariobefore.png",
-    animeImage: "",
-    tags: ["espaço verde", "lazer", "fontanário"],
   },
   {
     id: "escola-primaria-das-tilias",
@@ -75,9 +56,9 @@ const FUNDAO_POINTS = [
       "Parte da memória coletiva da cidade.",
       "Atualmente integra o património cultural local."
     ],
-    beforeImage: "images/after/escoladastilias.png",
-    afterImage: "images/before/construcaodaescolaprimariadastiliasbefore.png",
-    animeImage: "images/anime/ruadastiliasanime.png",
+    beforeImage: "images/before/escoladastiliasbefore.png",
+    afterImage: "images/after/escoladastiliasafter.png",
+    animeImage: "images/anime/escoladastiliasanime.png",
     tags: ["educação", "património", "história"],
   },
   {
@@ -93,64 +74,10 @@ const FUNDAO_POINTS = [
       "Arquitetura singular que merece ser preservada.",
       "Ponto de referência no centro histórico."
     ],
-    beforeImage: "images/after/chafarisdosgolfinhos.png",
-    afterImage: "images/before/edificiodosferreiraseochafarisdosgolfinhosabefore.png",
-    animeImage: "images/anime/edificiodosferreiraseochafarisdosgolfinhosanime.png",
+    beforeImage: "images/before/chafarisdosgolfinhosbefore.png",
+    afterImage: "images/after/chafarisdosgolfinhosafter.png",
+    animeImage: "images/anime/chafarisdosgolfinhosanime.png",
     tags: ["património", "história", "arte"],
-  },
-  {
-    id: "garagem-do-barrocas",
-    name: "Garagem do Barrocas",
-    category: "Património Industrial",
-    lat: 40.1378,
-    lng: -7.5000,
-    shortDescription: "Antiga garagem, testemunho da evolução do transporte na região.",
-    description: "A Garagem do Barrocas é um testemunho importante da história dos transportes no Fundão, representando uma época em que o automóvel começava a transformar a mobilidade urbana.",
-    curiosities: [
-      "Património industrial da cidade.",
-      "Testemunho da evolução dos transportes.",
-      "Arquitetura característica da época."
-    ],
-    beforeImage: "",
-    afterImage: "images/before/garagemdobarrocasbefore.png",
-    animeImage: "",
-    tags: ["património", "industrial", "transportes"],
-  },
-  {
-    id: "colegio-santo-antonio",
-    name: "Colégio de Santo António",
-    category: "Instituição de Ensino",
-    lat: 40.1410,
-    lng: -7.4995,
-    shortDescription: "Importante instituição de ensino com tradição na cidade.",
-    description: "O Colégio de Santo António é uma referência no ensino do Fundão, formando gerações de estudantes com qualidade e dedicação.",
-    curiosities: [
-      "Instituição com longa tradição educacional.",
-      "Referência na comunidade local.",
-      "Arquitetura que se destaca na paisagem urbana."
-    ],
-    beforeImage: "",
-    afterImage: "",
-    animeImage: "images/anime/colegiodesantoantonioanime.png",
-    tags: ["educação", "instituição", "tradição"],
-  },
-  {
-    id: "edificio-junto-ao-casino",
-    name: "Edifício Junto ao Casino",
-    category: "Arquitetura Urbana",
-    lat: 40.1415,
-    lng: -7.5012,
-    shortDescription: "Edifício emblemático na envolvente do Casino Fundanense.",
-    description: "Este edifício integra o conjunto arquitetónico da zona do Casino, contribuindo para a identidade visual deste importante eixo urbano.",
-    curiosities: [
-      "Arquitetura característica da zona central.",
-      "Integra o conjunto histórico do Casino.",
-      "Ponto de referência na paisagem urbana."
-    ],
-    beforeImage: "",
-    afterImage: "",
-    animeImage: "images/anime/edificiojuntoaocasinoanime.png",
-    tags: ["arquitetura", "urbano", "história"],
   },
   {
     id: "parque-das-tilias",
@@ -165,32 +92,14 @@ const FUNDAO_POINTS = [
       "Ideal para atividades de lazer e convívio.",
       "Arborização diversificada e bem cuidada."
     ],
-    beforeImage: "",
-    afterImage: "",
+    beforeImage: "images/before/parquedastiliasbefore.png",
+    afterImage: "images/after/parquedastiliasafter.png",
     animeImage: "images/anime/parquedastiliasanime.png",
     tags: ["natureza", "lazer", "parque"],
-  },
-  {
-    id: "parque-verde",
-    name: "Parque Verde do Fundão",
-    category: "Parque Urbano",
-    lat: 40.1355,
-    lng: -7.4975,
-    shortDescription: "Grande espaço verde para lazer, prática desportiva e contacto com a natureza.",
-    description: "O Parque Verde do Fundão oferece percursos pedonais, zonas de estar e áreas de recreio, funcionando como pulmão verde da cidade e espaço de convívio intergeracional.",
-    curiosities: [
-      "Ideal para caminhadas, corrida e atividades ao ar livre.",
-      "Potencial para instalação de arte pública e eventos culturais.",
-      "Espaço muito frequentado pelas famílias."
-    ],
-    beforeImage: "images/after/Parque-Verde-do-Fundao-after.png",
-    afterImage: "",
-    animeImage: "",
-    tags: ["natureza", "lazer", "desporto"],
   }
 ];
 
-// Definição de percursos de exemplo.
+// Definição de percursos de exemplo
 const FUNDAO_ROUTES = [
   {
     id: "rota-casino-centro",
@@ -237,7 +146,6 @@ const FUNDAO_ROUTES = [
       [40.1383, -7.5011],
       [40.1395, -7.5005],
       [40.1409, -7.5014],
-      [40.1410, -7.4995],
     ],
   },
   {

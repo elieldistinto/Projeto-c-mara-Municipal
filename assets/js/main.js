@@ -1,14 +1,14 @@
-// Inicialização do mapa Leaflet e lógica de interação principal.
-// Este ficheiro assume que o ficheiro data/locations.js já foi carregado
-// e que as constantes MAP_CENTER, FUNDAO_POINTS e FUNDAO_ROUTES existem.
+// ============================================
+// Mapa Interativo da Cidade do Fundão
+// Versão Corrigida - Workshop
+// ============================================
 
+// Variáveis Globais
 let map;
 let markersLayer;
 let activeRouteLayer = null;
 let markersById = {};
 let selectedPoiId = null;
-const IMAGE_OVERRIDES_KEY = "fundao:imageOverrides:v1";
-const UI_OVERRIDES_KEY = "fundao:ui:v1";
 let animeModeEnabled = true;
 let mapLayer = null;
 let satelliteLayer = null;
@@ -19,24 +19,32 @@ let realRouteMarker = null;
 let realRouteAnimRaf = null;
 let realRouteAbortController = null;
 
+// Constantes
+const IMAGE_OVERRIDES_KEY = "fundao:imageOverrides:v1";
+const UI_OVERRIDES_KEY = "fundao:ui:v1";
 const OSRM_BASE_URL = "https://router.project-osrm.org";
 
-// Função principal de arranque da aplicação
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
 function init() {
+  console.log("Inicializando aplicação...");
   initTheme();
-  initMap();
+  initMap();  // Mapa é inicializado primeiro
   renderPoints();
   initUI();
   applyHashFocus();
   window.addEventListener("hashchange", applyHashFocus);
+  console.log("Aplicação inicializada com sucesso!");
 }
 
-// Função para alternar tema claro/escuro
+// ============================================
+// TEMA CLARO/ESCURO
+// ============================================
 function initTheme() {
   const themeToggle = document.getElementById("theme-toggle");
   if (!themeToggle) return;
   
-  // Verificar tema salvo no localStorage
   const savedTheme = localStorage.getItem("theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   
@@ -54,66 +62,95 @@ function initTheme() {
   });
 }
 
-// Cria e configura o mapa centrado na zona do Casino Fundanense
+// ============================================
+// MAPA - GARANTINDO QUE APARECE CORRETAMENTE
+// ============================================
 function initMap() {
+  // Verificar se o elemento do mapa existe
+  const mapElement = document.getElementById("map");
+  if (!mapElement) {
+    console.error("Elemento do mapa não encontrado!");
+    return;
+  }
+  
+  console.log("Inicializando mapa...");
+  
+  // Criar o mapa com coordenadas do centro do Fundão
   map = L.map("map", {
     zoomControl: true,
-  }).setView([MAP_CENTER.lat, MAP_CENTER.lng], MAP_CENTER.zoom);
-
-  // Camadas base:
+    center: [MAP_CENTER.lat, MAP_CENTER.lng],
+    zoom: MAP_CENTER.zoom
+  });
+  
+  // Camada base - OpenStreetMap (garantindo que algo aparece)
   mapLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors",
-  });
-
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  
+  // Camada Satélite
   satelliteLayer = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution: "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
     }
   );
-
+  
+  // Labels para satélite
   labelsLayer = L.tileLayer(
     "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution: "Labels &copy; Esri",
+      attribution: 'Labels &copy; Esri',
       opacity: 0.92,
     }
   );
-
-  satelliteLayer.addTo(map);
+  
+  // Controle de camadas
+  const baseMaps = {
+    "Mapa": mapLayer,
+    "Satélite": satelliteLayer
+  };
+  
+  const overlayMaps = {
+    "Labels": labelsLayer
+  };
+  
+  L.control.layers(baseMaps, overlayMaps, { position: "topright" }).addTo(map);
+  
+  // Adicionar labels ao satélite por padrão
   labelsLayer.addTo(map);
-
-  L.control
-    .layers(
-      {
-        "Satélite": satelliteLayer,
-        "Mapa": mapLayer,
-      },
-      {
-        "Labels (satélite)": labelsLayer,
-      },
-      { position: "topright" }
-    )
-    .addTo(map);
-
+  
+  // Camada para marcadores
   markersLayer = L.layerGroup().addTo(map);
-
+  
+  // Carregar estado do modo Anime
   const ui = loadUiState();
   animeModeEnabled = ui.animeModeEnabled ?? true;
   setAnimeMode(animeModeEnabled);
+  
+  console.log("Mapa inicializado com sucesso!");
 }
 
-// Cria marcadores no mapa e a lista lateral de pontos de interesse
+// ============================================
+// PONTOS DE INTERESSE
+// ============================================
 function renderPoints() {
   const listEl = document.getElementById("poi-list");
+  if (!listEl) {
+    console.error("Elemento poi-list não encontrado!");
+    return;
+  }
+  
   listEl.innerHTML = "";
   markersById = {};
 
   FUNDAO_POINTS.forEach((point) => {
-    const marker = L.marker([point.lat, point.lng]).addTo(markersLayer);
+    // Criar marcador personalizado
+    const marker = L.marker([point.lat, point.lng], {
+      riseOnHover: true
+    }).addTo(markersLayer);
     markersById[point.id] = marker;
 
     const popupHtml = createPopupHtml(point);
@@ -131,105 +168,42 @@ function renderPoints() {
     });
   });
 
-  fitMapToPoints();
-}
-
-// Configura a interface (apenas rota real, sem percursos)
-function initUI() {
-  initRealRoutePlanner();
-  initModal();
-  initCompareSlider();
-  initAnimeToggle();
-}
-
-function initAnimeToggle() {
-  const btn = createMapToggleButton();
-  if (!btn) return;
-  btn.textContent = animeModeEnabled ? "Anime: ON" : "Anime: OFF";
-  btn.addEventListener("click", () => {
-    animeModeEnabled = !animeModeEnabled;
-    setAnimeMode(animeModeEnabled);
-    saveUiState({ animeModeEnabled });
-    btn.textContent = animeModeEnabled ? "Anime: ON" : "Anime: OFF";
-  });
-}
-
-function createMapToggleButton() {
-  if (!map) return null;
-
-  const Control = L.Control.extend({
-    onAdd() {
-      const btn = L.DomUtil.create("button", "leaflet-anime-toggle");
-      btn.type = "button";
-      btn.title = "Ativar/desativar filtro anime";
-      btn.style.cssText = `
-        background: linear-gradient(135deg, #7c3aed, #5b21b6);
-        border: none;
-        border-radius: 8px;
-        padding: 8px 12px;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-        font-size: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      `;
-      L.DomEvent.disableClickPropagation(btn);
-      return btn;
-    },
-  });
-
-  const ctrl = new Control({ position: "topright" });
-  ctrl.addTo(map);
-  return document.querySelector(".leaflet-anime-toggle");
-}
-
-function setAnimeMode(enabled) {
-  const mapEl = document.getElementById("map");
-  if (!mapEl) return;
-  if (enabled) mapEl.classList.add("map-anime");
-  else mapEl.classList.remove("map-anime");
-}
-
-function loadUiState() {
-  try {
-    const raw = localStorage.getItem(UI_OVERRIDES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed;
-  } catch {
-    return {};
+  // Filtro de pesquisa
+  initSearchFilter();
+  
+  // Ajustar o mapa para mostrar todos os pontos
+  if (FUNDAO_POINTS.length > 0) {
+    const bounds = L.latLngBounds(FUNDAO_POINTS.map(p => [p.lat, p.lng]));
+    map.fitBounds(bounds, { padding: [40, 40] });
   }
 }
 
-function saveUiState(partial) {
-  const current = loadUiState();
-  const next = { ...current, ...partial };
-  localStorage.setItem(UI_OVERRIDES_KEY, JSON.stringify(next));
-}
-
-// Cria o HTML interno de cada popup do Leaflet
 function createPopupHtml(point) {
   const tagsText = point.tags && point.tags.length ? point.tags.join(", ") : "";
 
   return `
     <div class="popup">
-      <div class="popup-title">${point.name}</div>
-      <div class="popup-desc">${point.shortDescription}</div>
+      <div class="popup-title">${escapeHtml(point.name)}</div>
+      <div class="popup-desc">${escapeHtml(point.shortDescription)}</div>
       <div class="popup-footer">
-        <span class="popup-category">${point.category}</span>
+        <span class="popup-category">${escapeHtml(point.category)}</span>
         <div class="popup-actions">
-          <button class="icon-button js-open-compare" data-id="${point.id}" title="Ver Antes / Depois">⇆</button>
-          <button class="icon-button js-open-route" data-lat="${point.lat}" data-lng="${point.lng}" title="Abrir rota no Google Maps">↗</button>
-          <button class="icon-button js-open-real-route" data-id="${point.id}" title="Traçar rota real (tempo / distância)">RT</button>
+          <button class="icon-button js-open-compare" data-id="${point.id}" title="Ver Antes / Depois">
+            <i class="fas fa-images"></i>
+          </button>
+          <button class="icon-button js-open-route" data-lat="${point.lat}" data-lng="${point.lng}" title="Abrir rota no Google Maps">
+            <i class="fas fa-external-link-alt"></i>
+          </button>
+          <button class="icon-button js-open-real-route" data-id="${point.id}" title="Traçar rota real">
+            <i class="fas fa-route"></i>
+          </button>
         </div>
       </div>
-      ${tagsText ? `<div style="margin-top:6px;font-size:11px;color:#9ca3af;">${tagsText}</div>` : ""}
+      ${tagsText ? `<div class="popup-tags"><i class="fas fa-tags"></i> ${escapeHtml(tagsText)}</div>` : ""}
     </div>
   `;
 }
 
-// Liga eventos no conteúdo do popup
 function attachPopupEvents(popup, point) {
   const container = popup.getElement();
   if (!container) return;
@@ -257,11 +231,12 @@ function attachPopupEvents(popup, point) {
   }
 }
 
-// Cria um item de lista na barra lateral
 function createPoiListItem(point) {
   const li = document.createElement("li");
   li.className = "poi-item";
   li.dataset.id = point.id;
+  li.dataset.name = point.name.toLowerCase();
+  li.dataset.category = point.category.toLowerCase();
 
   const left = document.createElement("div");
   left.className = "poi-item-meta";
@@ -287,7 +262,7 @@ function createPoiListItem(point) {
   const button = document.createElement("button");
   button.className = "icon-button";
   button.title = "Ver comparação Antes / Depois";
-  button.textContent = "⇆";
+  button.innerHTML = '<i class="fas fa-images"></i>';
   button.addEventListener("click", (e) => {
     e.stopPropagation();
     openCompareModal(point);
@@ -302,7 +277,23 @@ function createPoiListItem(point) {
   return li;
 }
 
-// Centraliza o mapa num ponto específico e abre o popup
+function initSearchFilter() {
+  const searchInput = document.getElementById("poi-search");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const term = e.target.value.toLowerCase().trim();
+    const items = document.querySelectorAll(".poi-item");
+    
+    items.forEach(item => {
+      const name = item.dataset.name || "";
+      const category = item.dataset.category || "";
+      const matches = term === "" || name.includes(term) || category.includes(term);
+      item.style.display = matches ? "flex" : "none";
+    });
+  });
+}
+
 function focusOnPoint(point) {
   if (!map) return;
   const marker = markersById[point.id];
@@ -316,14 +307,17 @@ function focusOnPoint(point) {
   highlightPoi(point.id);
 }
 
-// Ajusta a vista do mapa para incluir todos os marcadores
-function fitMapToPoints() {
-  if (!FUNDAO_POINTS.length) return;
-
-  const bounds = L.latLngBounds(
-    FUNDAO_POINTS.map((p) => [p.lat, p.lng])
-  );
-  map.fitBounds(bounds, { padding: [40, 40] });
+function highlightPoi(poiId) {
+  selectedPoiId = poiId;
+  const items = document.querySelectorAll(".poi-item");
+  items.forEach((item) => {
+    if (item.dataset.id === poiId) {
+      item.classList.add("poi-item--active");
+      item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else {
+      item.classList.remove("poi-item--active");
+    }
+  });
 }
 
 function applyHashFocus() {
@@ -335,18 +329,42 @@ function applyHashFocus() {
   }
 }
 
-function highlightPoi(poiId) {
-  selectedPoiId = poiId;
-  const items = document.querySelectorAll(".poi-item");
-  items.forEach((item) => {
-    if (item.dataset.id === poiId) {
-      item.classList.add("poi-item--active");
-    } else {
-      item.classList.remove("poi-item--active");
-    }
-  });
+// ============================================
+// MODO ANIME
+// ============================================
+function setAnimeMode(enabled) {
+  const mapEl = document.getElementById("map");
+  if (!mapEl) return;
+  if (enabled) {
+    mapEl.classList.add("map-anime");
+  } else {
+    mapEl.classList.remove("map-anime");
+  }
+  
+  // Atualizar botão do painel
+  const panelBtn = document.getElementById("anime-toggle-panel");
+  if (panelBtn) {
+    panelBtn.innerHTML = enabled ? 
+      '<i class="fas fa-star"></i> Desativar Modo Anime' : 
+      '<i class="fas fa-star"></i> Ativar Modo Anime';
+  }
 }
 
+function initAnimeToggle() {
+  // Botão no painel
+  const panelBtn = document.getElementById("anime-toggle-panel");
+  if (panelBtn) {
+    panelBtn.addEventListener("click", () => {
+      animeModeEnabled = !animeModeEnabled;
+      setAnimeMode(animeModeEnabled);
+      saveUiState({ animeModeEnabled });
+    });
+  }
+}
+
+// ============================================
+// ROTA REAL
+// ============================================
 function initRealRoutePlanner() {
   const destSelect = document.getElementById("real-destination");
   const modeSelect = document.getElementById("real-mode");
@@ -370,10 +388,10 @@ function initRealRoutePlanner() {
     routeBtn.disabled = isLoading;
     clearBtn.disabled = isLoading;
     if (isLoading) {
-      routeBtn.textContent = "A calcular...";
+      routeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> A calcular...';
       statsEl.textContent = "A calcular rota...";
     } else {
-      routeBtn.textContent = "Traçar rota real";
+      routeBtn.innerHTML = '<i class="fas fa-map"></i> Calcular Rota';
     }
   };
 
@@ -384,7 +402,7 @@ function initRealRoutePlanner() {
   const onPlan = async () => {
     setError("");
     if (!destSelect.value) {
-      setError("Seleciona um destino.");
+      setError("Selecione um destino.");
       return;
     }
 
@@ -402,7 +420,6 @@ function initRealRoutePlanner() {
   };
 
   routeBtn.addEventListener("click", onPlan);
-
   clearBtn.addEventListener("click", () => {
     clearRealRoute();
     statsEl.textContent = "";
@@ -414,10 +431,10 @@ function initRealRoutePlanner() {
   }
 }
 
-function requestUserGeolocation() {
+async function requestUserGeolocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocalização indisponível no teu navegador."));
+      reject(new Error("Geolocalização não suportada no seu navegador."));
       return;
     }
 
@@ -429,12 +446,12 @@ function requestUserGeolocation() {
         });
       },
       (err) => {
-        const msg = err && err.message ? err.message : "Não foi possível obter a tua localização. Ativa o GPS e tenta novamente.";
+        const msg = err?.message || "Não foi possível obter a sua localização.";
         reject(new Error(msg));
       },
       {
         enableHighAccuracy: true,
-        timeout: 9000,
+        timeout: 10000,
         maximumAge: 30000,
       }
     );
@@ -451,13 +468,13 @@ async function fetchOsrmRouteProfile(start, end, profile, signal) {
   });
 
   if (!res.ok) {
-    throw new Error(`Falha ao calcular rota (HTTP ${res.status}).`);
+    throw new Error(`Erro na rota (HTTP ${res.status}).`);
   }
 
   const data = await res.json();
   const route = data?.routes?.[0];
   if (!route || !route.geometry?.coordinates?.length) {
-    throw new Error("Sem rota encontrada entre os pontos.");
+    throw new Error("Nenhuma rota encontrada.");
   }
 
   const latlngs = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
@@ -487,15 +504,14 @@ function formatDuration(seconds) {
 
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return minutes ? `${hours} h ${minutes} min` : `${hours} h`;
+  return minutes ? `${hours}h ${minutes}min` : `${hours}h`;
 }
 
 function formatDistance(meters) {
   if (!Number.isFinite(meters) || meters <= 0) return "—";
   if (meters < 1000) return `${Math.round(meters)} m`;
   const km = meters / 1000;
-  const decimals = km < 5 ? 1 : 0;
-  return `${km.toFixed(decimals)} km`;
+  return `${km.toFixed(1)} km`;
 }
 
 function clearRealRoute() {
@@ -531,9 +547,9 @@ function animateMarkerAlongRoute(latlngs, durationSeconds) {
   const startLatLng = latlngs[0];
   const icon = L.divIcon({
     className: "route-pulse-marker",
-    html: '<div class="route-pulse-dot" aria-hidden="true"></div>',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    html: '<div class="route-pulse-dot"></div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
   });
 
   realRouteMarker = L.marker(startLatLng, {
@@ -573,7 +589,7 @@ function animateMarkerAlongRoute(latlngs, durationSeconds) {
 function renderRealRoute(latlngs) {
   realRouteBaseLayer = L.polyline(latlngs, {
     color: "#020617",
-    weight: 10,
+    weight: 12,
     opacity: 0.55,
     lineJoin: "round",
     lineCap: "round",
@@ -585,7 +601,7 @@ function renderRealRoute(latlngs) {
     opacity: 0.95,
     lineJoin: "round",
     lineCap: "round",
-    dashArray: "10 10",
+    dashArray: "8 8",
   }).addTo(map);
 
   map.fitBounds(realRouteOverlayLayer.getBounds(), { padding: [40, 40] });
@@ -597,7 +613,7 @@ async function computeAndRenderRealRoute(destPoint, mode, ui) {
   clearRealRoute();
 
   const routeBtn = document.getElementById("real-route-btn");
-  const errorFallback = "Erro ao calcular rota. Tenta novamente.";
+  const errorFallback = "Erro ao calcular rota. Tente novamente.";
 
   try {
     setLoading?.(true);
@@ -617,14 +633,13 @@ async function computeAndRenderRealRoute(destPoint, mode, ui) {
     animateMarkerAlongRoute(route.latlngs, route.durationSeconds);
 
     if (statsEl) {
-      statsEl.textContent = `Tempo estimado: ${formatDuration(route.durationSeconds)} · Distância: ${formatDistance(route.distanceMeters)}`;
+      statsEl.innerHTML = `<i class="fas fa-clock"></i> ${formatDuration(route.durationSeconds)} · <i class="fas fa-road"></i> ${formatDistance(route.distanceMeters)}`;
     }
   } catch (err) {
     const msg = err?.name === "AbortError" ? "" : err?.message || errorFallback;
     setError?.(msg);
   } finally {
     setLoading?.(false);
-    if (routeBtn) routeBtn.textContent = "Traçar rota real";
   }
 }
 
@@ -644,7 +659,7 @@ async function openRealRoute(point) {
       const clearBtn = document.getElementById("real-route-clear");
       if (routeBtn) routeBtn.disabled = isLoading;
       if (clearBtn) clearBtn.disabled = isLoading;
-      if (routeBtn) routeBtn.textContent = isLoading ? "A calcular..." : "Traçar rota real";
+      if (routeBtn) routeBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin"></i> A calcular...' : '<i class="fas fa-map"></i> Calcular Rota';
       if (statsEl) statsEl.textContent = isLoading ? "A calcular rota..." : statsEl.textContent;
     },
     statsEl,
@@ -654,25 +669,41 @@ async function openRealRoute(point) {
   });
 }
 
-// Inicialização da janela modal de comparação
+// ============================================
+// MODAL DE COMPARAÇÃO
+// ============================================
 function initModal() {
   const modal = document.getElementById("compare-modal");
+  if (!modal) return;
+  
   const closeBtn = document.getElementById("modal-close");
   const backdrop = modal.querySelector(".modal-backdrop");
 
-  closeBtn.addEventListener("click", () => {
-    closeModal();
-  });
-
-  backdrop.addEventListener("click", () => {
-    closeModal();
-  });
-
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeModal);
+  }
+  if (backdrop) {
+    backdrop.addEventListener("click", closeModal);
+  }
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeModal();
-    }
+    if (e.key === "Escape") closeModal();
   });
+}
+
+function initCompareSlider() {
+  const slider = document.getElementById("compare-slider");
+  if (slider) {
+    slider.addEventListener("input", () => {
+      updateCompareOverlay(slider.value);
+    });
+  }
+}
+
+function updateCompareOverlay(value) {
+  const overlay = document.getElementById("after-overlay");
+  if (overlay) {
+    overlay.style.width = `${value}%`;
+  }
 }
 
 function loadImageOverrides() {
@@ -707,36 +738,26 @@ function resolveOverridePath(value, kind) {
 
 function createInlinePlaceholder(label) {
   const safe = String(label || "").replace(/[<>&"]/g, "");
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1120"/>
-      <stop offset="1" stop-color="#1e1b4b"/>
-    </linearGradient>
-  </defs>
-  <rect width="1280" height="720" fill="url(#g)"/>
-  <text x="50%" y="48%" text-anchor="middle" font-size="56" fill="#f9fafb" font-family="Segoe UI, system-ui">Imagem ${safe}</text>
-  <text x="50%" y="58%" text-anchor="middle" font-size="28" fill="#9ca3af" font-family="Segoe UI, system-ui">Coloca o ficheiro em images/</text>
-</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+    <rect width="800" height="450" fill="#1f2937"/>
+    <circle cx="400" cy="200" r="60" fill="#374151"/>
+    <text x="400" y="280" text-anchor="middle" font-size="24" fill="#9ca3af" font-family="system-ui">${safe}</text>
+    <text x="400" y="320" text-anchor="middle" font-size="14" fill="#6b7280">Adicione imagem na pasta images/</text>
+  </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function applyImageFallback(img, label) {
   if (!img) return;
-  img.addEventListener(
-    "error",
-    () => {
-      img.onerror = null;
-      img.src = createInlinePlaceholder(label);
-    },
-    { once: true }
-  );
+  img.addEventListener("error", () => {
+    img.onerror = null;
+    img.src = createInlinePlaceholder(label);
+  }, { once: true });
 }
 
-// Abre o modal e atualiza as informações e imagens
 function openCompareModal(point) {
   const modal = document.getElementById("compare-modal");
+  if (!modal) return;
 
   const titleEl = document.getElementById("modal-title");
   const descEl = document.getElementById("modal-description");
@@ -745,20 +766,27 @@ function openCompareModal(point) {
   const imgBeforeEl = document.getElementById("img-before");
   const imgAfterEl = document.getElementById("img-after");
 
-  titleEl.textContent = point.name;
-  descEl.textContent = point.description || point.shortDescription;
-  categoryEl.textContent = point.category;
-  tagsEl.textContent = point.tags && point.tags.length ? point.tags.join(", ") : "Sem tags definidas";
+  if (titleEl) titleEl.textContent = point.name;
+  if (descEl) descEl.textContent = point.description || point.shortDescription;
+  if (categoryEl) categoryEl.textContent = point.category;
+  if (tagsEl) tagsEl.textContent = point.tags && point.tags.length ? point.tags.join(", ") : "Sem tags";
 
   const overrides = loadImageOverrides();
   const override = overrides[point.id] || {};
 
+  // Usar as imagens corretas
   const beforePath = normalizeImagePath(resolveOverridePath(override.before, "before") || point.beforeImage || "");
   const afterPath = normalizeImagePath(resolveOverridePath(override.after, "after") || point.afterImage || "");
   const animePath = normalizeImagePath(resolveOverridePath(override.anime, "anime") || point.animeImage || "");
 
-  imgBeforeEl.src = beforePath || createInlinePlaceholder("Antes");
-  imgAfterEl.src = afterPath || createInlinePlaceholder("Depois");
+  if (imgBeforeEl) {
+    imgBeforeEl.src = beforePath || createInlinePlaceholder("Antes");
+    applyImageFallback(imgBeforeEl, "Antes");
+  }
+  if (imgAfterEl) {
+    imgAfterEl.src = afterPath || createInlinePlaceholder("Depois");
+    applyImageFallback(imgAfterEl, "Depois");
+  }
   
   const imgAnimeEl = document.getElementById("img-anime");
   if (imgAnimeEl) {
@@ -766,31 +794,62 @@ function openCompareModal(point) {
     applyImageFallback(imgAnimeEl, "Anime");
   }
 
-  applyImageFallback(imgBeforeEl, "Antes");
-  applyImageFallback(imgAfterEl, "Depois");
-
   const slider = document.getElementById("compare-slider");
-  slider.value = 50;
-  updateCompareOverlay(slider.value);
+  if (slider) {
+    slider.value = 50;
+    updateCompareOverlay(50);
+  }
 
   modal.classList.remove("hidden");
 }
 
 function closeModal() {
   const modal = document.getElementById("compare-modal");
-  modal.classList.add("hidden");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
 }
 
-function initCompareSlider() {
-  const slider = document.getElementById("compare-slider");
-  slider.addEventListener("input", () => {
-    updateCompareOverlay(slider.value);
-  });
+// ============================================
+// UI STATE
+// ============================================
+function loadUiState() {
+  try {
+    const raw = localStorage.getItem(UI_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
 }
 
-function updateCompareOverlay(value) {
-  const overlay = document.getElementById("after-overlay");
-  overlay.style.width = `${value}%`;
+function saveUiState(partial) {
+  const current = loadUiState();
+  const next = { ...current, ...partial };
+  localStorage.setItem(UI_OVERRIDES_KEY, JSON.stringify(next));
 }
 
+function initUI() {
+  initRealRoutePlanner();
+  initModal();
+  initCompareSlider();
+  initAnimeToggle();
+}
+
+// ============================================
+// UTILITÁRIOS
+// ============================================
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Inicialização
 document.addEventListener("DOMContentLoaded", init);
